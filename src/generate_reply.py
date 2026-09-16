@@ -34,6 +34,7 @@ from classify_intent import (  # noqa: E402
 
 THREADS_PATH = Path("data/comcastcares_threads.jsonl")
 REPORT_PATH = Path("reports/sample_outputs.md")
+SAMPLE_OUTPUTS_JSONL_PATH = Path("reports/sample_outputs.jsonl")
 
 SAMPLE_SIZE = 35
 SAMPLE_SEED = 20260918
@@ -384,9 +385,30 @@ def main():
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     REPORT_PATH.write_text(report, encoding="utf-8")
 
+    with SAMPLE_OUTPUTS_JSONL_PATH.open("w", encoding="utf-8") as f:
+        for rec, cls, retrieved, draft, (escalate, reason) in zip(
+            golden_sample, classifications, retrieved_lists, drafts, decisions
+        ):
+            f.write(json.dumps({
+                "thread_id": rec["thread_id"],
+                "customer_message": rec["customer_message"],
+                "classified_intent": cls["intent"],
+                "confidence": cls["confidence"],
+                "human_label_intent": rec["label_intent"],
+                "retrieved_examples": [
+                    {"customer_message": d["customer_message"], "brand_reply": d["brand_reply"]}
+                    for d in retrieved
+                ],
+                "draft_reply": draft,
+                "escalate": escalate,
+                "decision_reason": reason,
+                "actual_historical_reply": rec["brand_reply"],
+            }) + "\n")
+
     escalate_count = sum(1 for e, _ in decisions if e)
     print(f"\n{escalate_count}/{len(decisions)} escalated, {len(decisions) - escalate_count}/{len(decisions)} auto-handled")
     print(f"Saved sample outputs to {REPORT_PATH}")
+    print(f"Saved machine-readable sample outputs to {SAMPLE_OUTPUTS_JSONL_PATH}")
 
 
 if __name__ == "__main__":
