@@ -1,5 +1,22 @@
 # HiverSupportAgent
 
+## Reproduction
+
+Run the pipeline scripts in order (each is idempotent and reads the previous phase's output):
+
+```
+python3 src/build_dataset.py
+python3 src/derive_taxonomy.py
+python3 src/label_golden_set.py       # interactive; skip if eval/golden_set.jsonl already has labels
+python3 src/classify_intent.py
+python3 src/generate_reply.py
+python3 src/eval_harness.py
+python3 src/human_judge_sample.py     # interactive; skip if eval/human_judge_scores.jsonl already has scores
+python3 src/eval_harness.py --agreement
+```
+
+`.cache/groq_cache.json` is committed to the repo specifically so this whole pipeline reproduces instantly from cached Groq responses in well under 15 minutes; running from scratch without it will re-issue every LLM call and hit Groq's free-tier rate limits, as documented for Phase 6 in `reports/decision_log.md` (the judge run there had to be capped at 20/35 examples for exactly this reason).
+
 ## Report
 
 ### Problem Framing
