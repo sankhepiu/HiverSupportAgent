@@ -1,0 +1,673 @@
+# Phase 5 Sample Outputs: Reply Drafting + Escalation Decisions
+
+Run over a random sample of 35 golden-set examples (seed=20260918). For each: intent + confidence are classified fresh (few-shot Groq, same approach as Phase 4's main classifier), the top-3 most similar well-resolved historical threads for that intent are retrieved via TF-IDF, a reply is drafted grounded in those threads, and an auto-handle/escalate decision is made with a stated reason.
+
+## "Well-resolved" heuristic validation
+
+The retrieval pool prefers threads whose customer follow-up reads as resolved (keyword heuristic on positive/negative language), and excludes ones that read as unresolved; threads with no follow-up are kept (no evidence either way), not discarded. Checked against the golden set's own human `label_resolved` judgments, for the 48 golden examples that have a customer follow-up:
+
+| Heuristic says | Human said yes | Human said partial | Human said no |
+|---|---|---|---|
+| resolved | 7 | 5 | 2 |
+| not_resolved | 0 | 0 | 2 |
+| unknown | 4 | 4 | 24 |
+
+The heuristic is deliberately conservative (only used to *exclude* clearly-bad threads from retrieval, not to certify good ones), so some disagreement here is expected and acceptable for that purpose.
+
+## Summary: 3/35 escalated, 32/35 auto-handled
+
+## Example 1: thread 831681_923437
+
+**Customer:** @comcastcares I didn't get to watch a single play of the game cause of this outage what the hell
+
+**Classified intent:** Service Outage (confidence: high) | **Human label:** Service Outage
+
+**Retrieved grounding examples:** 3
+  - "One of the few times I get to watch in my area and goes down. 😞" → "Frustrating! Please send me a DM with the phone number on your account and I will take a look at the service issue. ~MK"
+  - "Change your username @comcastcares cause that’s sure as hell not true. I pay 12 bills in a row on time and I’m rewarded with a $35 increase." → "I would be happy to review your services and see how we can save you money. Please DM your account details to get started. -KB"
+  - "this isn't working in Denver for the Rockies game." → "your full address for assistance. -AC"
+
+**Drafted reply:** I’m sorry you missed the game. Please DM me your account phone number and I’ll investigate the outage right away. –MK
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** Hello, I apologize for the troubles w/ your service. Could you please follow us &amp; DM your full address &amp; phone #? I would like to
+
+---
+
+## Example 2: thread 1840835_1840837
+
+**Customer:** @comcastcares I TYPED THIS 2HRS AGO U DENSE DUMMYS. AND U REALLY THINK THIS IS A ISSUE THT SHOULD BE DONE OVER 2HRS TEXT IN SOCIAL MEDIA.... THT IS AWFUL
+
+**Classified intent:** Escalation & Security (confidence: high) | **Human label:** Escalation & Security
+
+**Retrieved grounding examples:** 3
+  - "Today w/ again for 2hrs and nothing was done from friday call. Very bad customer services" → "Thanks for sharing this experience. Can you please send a DM when you have a chance so I can take a closer look at your services? -JB"
+  - "This is the stuff I have been dealing with constantly for over a month. Who do I blame. @comcastcares #twitchhelp" → "I want to make sure you have the service you deserve. Please send us a DM with your phone number. -ME"
+  - "@comcastcares I was hoping that would be the case, but I just called customer support and this is a direct quote from your “retention specialist”: “unfortunately, there is nothing I can do for you at this time to get any closer to the rate of your previous contract”" → "Sorry to hear that. If you change your mind and want me to take one more look to see if there are any additional promos, send me a DM. -EW"
+
+**Drafted reply:** I’m sorry you’re still having trouble. Please DM us your phone number so we can investigate and get this resolved. -JB
+
+**Decision:** AUTO-HANDLE — Auto-handle: 'Escalation & Security' is a sensitive intent, but high classifier confidence and 3 well-resolved historical examples were judged sufficient to proceed.
+
+**Actual historical reply (for comparison):** I apologize for any delay. We would like to get your issues resolved now. Please send a DM if you still need assistance. -Ra
+
+---
+
+## Example 3: thread 1069001_1068999
+
+**Customer:** @ComcastCares #mobile_Care once again horrible customer service
+
+**Classified intent:** Escalation & Security (confidence: high) | **Human label:** Escalation & Security
+
+**Retrieved grounding examples:** 3
+  - "@comcastcares should be more like .... horrible customer service" → "Please send a direct message when you have a moment so I can work to get your service re-established. -JB"
+  - "comcast you are lieres and crooks once again lied to" → "Oh no! This is not the experience we want our customers to have. I can definitely look into this service issue for you. Please, go ahead"
+  - "@ComcastCares #mobile_Care I’m so over Comcast at times. Customer service sucks, bill is high and internet services doesn’t work properly." → "Hey. I would like to help address any account concerns. Can you DM your full name, the phone number, and address linked to the account? -Ra"
+
+**Drafted reply:** Hey, I’m sorry you’re having a tough time. Please DM me your full name, account phone number, and the address on the account so I can look into this right away. -JB
+
+**Decision:** AUTO-HANDLE — Auto-handle: 'Escalation & Security' is a sensitive intent, but high classifier confidence and 3 well-resolved historical examples were judged sufficient to proceed.
+
+**Actual historical reply (for comparison):** What happened? I'm sure I can help!-JG
+
+---
+
+## Example 4: thread 781942_781941
+
+**Customer:** oops! just realized the game was on ESPN. my bad! thx
+
+**Classified intent:** Other (confidence: low) | **Human label:** Channel Issues
+
+**Retrieved grounding examples:** 0
+
+**Drafted reply:** No worries—happy to help! If you need anything else, just let us know. Enjoy the game!
+
+**Decision:** ESCALATE — Escalate to human: no well-resolved historical examples found for this intent; classifier confidence is low.
+
+**Actual historical reply (for comparison):** No problem! If you ever need assistance in the future, we’re always here for you! –EK
+
+---
+
+## Example 5: thread 1146256_1895842
+
+**Customer:** @comcastcares I did that 2 weeks ago. You wouldn’t relent on the contract. All I wanted was the same monthly rate and channels, no contract. You wouldn’t.
+
+**Classified intent:** Account Management (confidence: high) | **Human label:** Billing Issues
+
+**Retrieved grounding examples:** 3
+  - "@comcastcares why do you send emails with pricing that your customer service reps cannot view? I was promised a package, was sent an email confirmation, yet I cannot send it back to you to prove it nor can you look it up on your system." → "Hi there. I'm sorry to hear about the bad experiences you've had thus far, but I really like to help make things right. Can you please send me a DM with the phone number on your account? -EI"
+  - "I worked my ass off to get Comcast live on my phone and you dick heads have the balls to tell me I can’t watch OSU-Wisconsin?" → "I can look into why you cant watch the OSU-Wisconsin game. Please DM me your account info so I can help. -GR"
+  - "@comcastcares And you’d be the sixth person to “investigate”. If you’re not providing a service yet you continue to bill me does that constitute fraud?" → "Can you please provide me with your account number or phone number so I can assist you? -CLR"
+
+**Drafted reply:** Hi, I’m sorry you’re still having trouble. Please DM me your account or phone number so I can review the contract details and get this resolved for you. -EI
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** I am sorry to hear that we couldnt find a plan that worked for you. Please let me know if there is anything else I can do to help. -NC
+
+---
+
+## Example 6: thread 1531610_1531609
+
+**Customer:** @comcastcares I need a supervisor to call me please. I cannot reach anyone over the phone and online chat is not helping. Held for 25 min
+
+**Classified intent:** Escalation & Security (confidence: high) | **Human label:** Escalation & Security
+
+**Retrieved grounding examples:** 3
+  - "@comcastcares Can I please have someone contact me? I am a business customer and our node has consistently had issues for over a month." → "account information to further assist?- NL"
+  - "I’ve been on the phone for over an hour waiting for one of your representatives... any chance someone will take my call? I have no TV or internet -_-" → "I apologize for the troubles with your services. Please DM us the full address on your account and I would be happy to help. CSR"
+  - "@comcastcares Why is @comcastcares ignoring me but helping im other customers? I see you 👀. I've already DMed you." → "Hi, I just replied to your DM. Once you have a moment, please respond there so I can assist you.-Sean"
+
+**Drafted reply:** Hi, I’m sorry you’re having trouble getting through. Please DM me your full account address and I’ll connect you with a supervisor right away. –CSR
+
+**Decision:** AUTO-HANDLE — Auto-handle: 'Escalation & Security' is a sensitive intent, but high classifier confidence and 3 well-resolved historical examples were judged sufficient to proceed.
+
+**Actual historical reply (for comparison):** I will make sure we get your account situated. Can you please send a DM? -JB
+
+---
+
+## Example 7: thread 2458529_2458528
+
+**Customer:** Dear please look into your gigabit infrastructure. I should not have to reboot my modem every day to reduce my ping in online games!
+
+**Classified intent:** Internet Performance (confidence: high) | **Human label:** Internet Performance
+
+**Retrieved grounding examples:** 3
+  - "Why does internet service keep kicking me out of my games I play online?" → "Hello I understand this is a frustrating experience, I would like to look into this for you can you send a DM with your account number and or phone number associated with your account? -AD"
+  - "Dear , Your internet service is trash. Sincerely, Every Twitch broadcaster" → "I can definitely assist with the internet issue you're having. Could you please DM me your address and phone number to begin? -NFM"
+  - "Dear Xfinity, do you know that your internet is very slow during the day and late at night while the my internet rate keeps increasing every year?" → "Hello. I’d like to help get your internet up to speed. Could you DM me so we can talk in more detail? –EK"
+
+**Drafted reply:** Hi! I’m sorry you’re having trouble. Please DM me your account number or the phone number on the account so I can look into the gigabit performance for you. –Comcast Cares
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** I would be more than happy to help with any internet issues you may be having. Please DM me with your address so I can take a look. -TW
+
+---
+
+## Example 8: thread 2499559_2499557
+
+**Customer:** help me
+
+**Classified intent:** Other (confidence: low) | **Human label:** Technical Support
+
+**Retrieved grounding examples:** 0
+
+**Drafted reply:** Sure! Can you let us know what you need help with? Once we have a bit more detail, we’ll get it sorted right away.
+
+**Decision:** ESCALATE — Escalate to human: no well-resolved historical examples found for this intent; classifier confidence is low.
+
+**Actual historical reply (for comparison):** Hi, I can help you. What are you trying to do? ~PM
+
+---
+
+## Example 9: thread 1355300_1355301
+
+**Customer:** @comcastcares Sent Acct #
+
+**Classified intent:** Account Management (confidence: high) | **Human label:** Technical Support
+
+**Retrieved grounding examples:** 3
+  - "@comcastcares why do you send emails with pricing that your customer service reps cannot view? I was promised a package, was sent an email confirmation, yet I cannot send it back to you to prove it nor can you look it up on your system." → "Hi there. I'm sorry to hear about the bad experiences you've had thus far, but I really like to help make things right. Can you please send me a DM with the phone number on your account? -EI"
+  - "all I want for #xmas is high speed internet that does not go down multiple times per day. Please dont tell me to powerdown the router and have a refresh signal sent. It is your service that simply is not stable." → "Hi! I'd be happy to take a look at your services. Can you please send a DM confirming your name, address, account number and then either the phone number on the account or the exact amount of your last payment? -EM"
+  - "@comcastcares __credit_card__" → "I appreciate you sending this information. Would you be able to delete the public posts with your info and send a DM instead? Thanks! -KW"
+
+**Drafted reply:** Hi! I can help with that. Please send me a DM with your account number and the phone number on the account. Thanks!
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** Thank you! -JR
+
+---
+
+## Example 10: thread 726012_726013
+
+**Customer:** @ComcastCares #mobile_CareXI nothing is working right now ? We had this problem forever ????!!! What’s going on ?!
+
+**Classified intent:** Technical Support (confidence: high) | **Human label:** Service Outage
+
+**Retrieved grounding examples:** 3
+  - "@comcastcares Thanks for contacting. Had to do a box reset. Seens to be working fine now. Will contact if problem occurs again." → "Okay, was there anything else I could help with?-JG"
+  - "@comcastcares 30 minutes with this tech on the phone, still nothing. ¯\_(ツ)_/¯" → "Hello, Thank you for reaching out to us. We are able to look into your service trouble. Please send us a DM with"
+  - "@ComcastCares #mobile_Care. Constant juttering during broadcasts and audio lag for two days now what is happening" → "I would be happy to look further into your service issues if you would provide your full address and the account associated phone number in a DM. -JW"
+
+**Drafted reply:** Hi there! I’m sorry you’re still having trouble. Please DM us your full address and the phone number linked to the account so we can investigate further. Thank you!
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** Oh no! This is not the experience we want our customers to have. I can definitely look into this service issue for you. Please, go ahead
+
+---
+
+## Example 11: thread 400501_400502
+
+**Customer:** @comcastcares spent half an hour on the phone w someone who could barely speak English and my internet still doesn’t work. Please help
+
+**Classified intent:** Technical Support (confidence: high) | **Human label:** Service Outage
+
+**Retrieved grounding examples:** 3
+  - "you guys have the fastest internet around. I work from home. I️ want to pay for your service. I️ just can’t get it to work. Please help me..." → "Hi, I can help resolve the issues with the internet trouble. Please DM me with your name and phone number or account number. ~PM"
+  - "@comcastcares 30 minutes with this tech on the phone, still nothing. ¯\_(ツ)_/¯" → "Hello, Thank you for reaching out to us. We are able to look into your service trouble. Please send us a DM with"
+  - "@comcastcares I have the exact same issue, spent 8 hours on the phone today with no results, calling fcc tomorrow morning" → "Hello. I just sent you a DM -BT"
+
+**Drafted reply:** Hi, sorry to hear about the trouble. Please DM us your name and account number so we can investigate and get your internet working again. Thanks!
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** Oops! I mean to ask you to DM me that information, please! -MV
+
+---
+
+## Example 12: thread 2074098_2074097
+
+**Customer:** When you’re on the phone with for almost an hour and the 2 month long problem cant be fixed. #what #help
+
+**Classified intent:** Escalation & Security (confidence: high) | **Human label:** Escalation & Security
+
+**Retrieved grounding examples:** 3
+  - "@comcastcares I'm already on the phone with you people. Why would I want to be on the phone with another person from India at the same time?.. lol" → "No worries. We are here for you also. Keep us updated if there is anything we can do to assist. -LT"
+  - "@comcastcares I was on the phone with you 4 times on Thursday. (Everyone is nice). Supposedly problem “fixed.” Nope. Can’t wait to cancel. Xfinity sucks" → "We're always a DM away should you change your mind. We're always happy to help. -KB"
+  - "You’re trash" → "I have replied to the DM you sent us. Once you have a moment please respond there so I can help.-Sean"
+
+**Drafted reply:** I’m sorry you’re still stuck. Please DM us your Xfinity ID and the exact issue so I can pull up a priority ticket and get a technician on site ASAP. -LT
+
+**Decision:** AUTO-HANDLE — Auto-handle: 'Escalation & Security' is a sensitive intent, but high classifier confidence and 3 well-resolved historical examples were judged sufficient to proceed.
+
+**Actual historical reply (for comparison):** I would be happy to help with any issues you may be having. Please send me a DM with your service address and phone number. -TW
+
+---
+
+## Example 13: thread 568164_568163
+
+**Customer:** Where does all of Comcast fucking money to do where they can't provide a single second of good fucking internet??? Must know... because I can't play anything without lagging every second.
+
+**Classified intent:** Internet Performance (confidence: high) | **Human label:** Internet Performance
+
+**Retrieved grounding examples:** 3
+  - "I would once again like to thank for giving me an internet experience that constantly fails. My second job is streaming, and I can’t exactly do that when the internet decides to shit itself every single day." → "I understand how frustrating it is when service is disrupted and I'd like to look into your concerns. Please send a DM with your full name, address, and account number so I can assist with your internet issues. Thanks! -KW"
+  - "internet is straight fucking trash on every level" → "I definitely want to make sure your internet connection issues are resolved. Please DM me your full address &amp; phone# to better assist. –SLM"
+  - "Why does internet service keep kicking me out of my games I play online?" → "Hello I understand this is a frustrating experience, I would like to look into this for you can you send a DM with your account number and or phone number associated with your account? -AD"
+
+**Drafted reply:** I’m sorry you’re having this issue. Please DM me your full name, address, and account number so I can investigate and get your internet back to smooth play. –Comcast Cares
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** Good evening Chris. Please send me a DM with your account info so I can look into what's going on with your internet service. -RR
+
+---
+
+## Example 14: thread 2133772_2133771
+
+**Customer:** shoutout for causing yet another stream to end early :-) u guys are garbage
+
+**Classified intent:** Streaming Content Issues (confidence: high) | **Human label:** Streaming Content Issues
+
+**Retrieved grounding examples:** 3
+  - "Sorry for the really short stream today guys, Comcast had other plans for me. :(" → "I am happy to look into this for you. Can you send a DM with your full name and address, so I can locate your account and assist? - Noah"
+  - "What the hell happened to my on demand. Everything says I have to pay for it. I can't watch my shows for free anymore?" → "Hello, I would be happy to assist with any account concerns. To get started, please DM me your phone or account number – JWC"
+  - "@comcastcares Correct. I ordered it last night and wasn't able to watch it. I now need to wait until my children are in bed before having the chance." → "I would like to look into this a bit further. Could you please DM to continue? -KB"
+
+**Drafted reply:** I’m sorry you’re having trouble with your stream. Could you DM me your full name and address so I can look into this for you? – Noah
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** So sorry that this happened. I can look into your connection for you. Can you DM the name and address on the account?-Sean
+
+---
+
+## Example 15: thread 670736_670735
+
+**Customer:** Y'all Fucking Me Over Tonight , shitty ass internet
+
+**Classified intent:** Internet Performance (confidence: high) | **Human label:** Internet Performance
+
+**Retrieved grounding examples:** 3
+  - "fuck y'all fake ass broke ass wifi" → "Hi, I can help with your WiFi service. Can you DM the name and address on the account so I can look into the issue?-Sean"
+  - "as if fucking over cable &amp; internet consumers wasn't enough, going for the hat trick to fuck over customers with cell phone service" → "Hello. Can you send over a DM with your account info for review? -ML"
+  - "y’all WiFi is shitty! Tighten up" → "I apologize for the troubles with your Wi-Fi service. Can you please send us a DM with the full name name on the account, your full name and either the full account number or the phone number associated with the acct. I'd like to review your acct so I can assist. -DR"
+
+**Drafted reply:** I’m sorry you’re having trouble. Please DM us your full name, account number or phone number, and the name on the account so we can look into this right away. - @comcastcares
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** Oh no! This is not the experience we want our customers to have. I can definitely look into this service issue for you. Please, go ahead and send us a Direct Message with your account information so that I can see what's going on. –XG
+
+---
+
+## Example 16: thread 104456_104454
+
+**Customer:** HA HA YOU SO FUNNY JEFFREY 😄😄😄
+
+**Classified intent:** Other (confidence: low) | **Human label:** Service Outage
+
+**Retrieved grounding examples:** 0
+
+**Drafted reply:** Hey! Glad we could bring a smile. How can we help you today?
+
+**Decision:** ESCALATE — Escalate to human: no well-resolved historical examples found for this intent; classifier confidence is low.
+
+**Actual historical reply (for comparison):** I can help you with your TV service. Can you DM your account phone number and address? -TJS
+
+---
+
+## Example 17: thread 191334_191333
+
+**Customer:** @comcastcares Your service sucks, your reps are even worse! Charging Fla residents for cable when they haven't had service for 2months
+
+**Classified intent:** Billing Issues (confidence: high) | **Human label:** Billing Issues
+
+**Retrieved grounding examples:** 3
+  - "Please improve your service performance and stop charging people for technical assistance when the issues are service related." → "call charge. Please provide by DM the full address and account number and name associated with your account. Thanks. - QS"
+  - "Hey why are you charging me for TV service when I DON'T HAVE TV WITH YOU?! #checkyourbillfolks #thiskeepshappening #fraud" → "Hello Richard, I can further investigate these cable charges for you. Pease DM me the full name, phone # and address on the account. -ADW"
+  - "Hey I am incredibly disappointed in your customer service and service. Never got a call back!!! I want my account canceled NOW!!!" → "Just checking in with you. Could you please send a DM with your account details to continue? -KB"
+
+**Drafted reply:** Hi there, I’m sorry you’re experiencing this. Please DM me your account number, full name, and address so I can investigate the charges and get this resolved for you. Thank you.
+
+**Decision:** AUTO-HANDLE — Auto-handle: 'Billing Issues' is a sensitive intent, but high classifier confidence and 3 well-resolved historical examples were judged sufficient to proceed.
+
+**Actual historical reply (for comparison):** Can you please follow us so I can respond to your DM? -DR
+
+---
+
+## Example 18: thread 1698854_1698852
+
+**Customer:** #Comcast does it again! After going up 3 times the last 6 mos, I get a bill gone up 30 dollars for basic cable, slow internet. #badcomcast
+
+**Classified intent:** Billing Issues (confidence: high) | **Human label:** Billing Issues
+
+**Retrieved grounding examples:** 3
+  - "What exactly am I paying for @comcastcares? Slow Internet and dropped cable?" → "I can look into your service issues. Please DM me your account info so I can better assist you. -GR"
+  - "@comcastcares This problem has gone on for two years. Nothing has changed besides how much I pay for internet. My cost has gone up x3 and nothing’s change" → "Over the course of the past two years, has the gateway you're using been replaced, or updated? - Kerry"
+  - "Why do you go up on the bill every January" → "Hello, thanks for reaching out about your billing concerns and I'd be happy to help. Can you please DM the full address? ~AT"
+
+**Drafted reply:** I’m sorry you’re seeing those increases. Please DM me your account number and the last 4 digits of the billing address so I can pull up your history and help resolve this. –AT
+
+**Decision:** AUTO-HANDLE — Auto-handle: 'Billing Issues' is a sensitive intent, but high classifier confidence and 3 well-resolved historical examples were judged sufficient to proceed.
+
+**Actual historical reply (for comparison):** Hey Daniel, if you need a hand with your account please DM us your account info. - Matt
+
+---
+
+## Example 19: thread 2368066_2368067
+
+**Customer:** .@comcastcares Good evening, am I supposed to be getting telemarketing calls?
+
+**Classified intent:** Account Management (confidence: high) | **Human label:** Escalation & Security
+
+**Retrieved grounding examples:** 3
+  - "@ComcastCares #mobile_Care why am I getting messages about moving? I’m not moving." → "I'm not sure but I'd be more than happy to look into this for you. Plz DM me your acct# or phone# tied to the acct. -AMD"
+  - "@ComcastCares #mobile_Care Getting partial refund (charged for taxes) on hurricane outage. How can I be taxed on no services received?" → "Hi Shirley, thanks for reaching out to us with your concern about the bill. I'd like to investigate the situation..."
+  - "I will be moving soon, and I'd be lying if I didn't say that part of the reason is to get away from 's shit service." → "I don't have an ETA on it at this time, I'm afraid. I'm sorry. -Joe"
+
+**Drafted reply:** I’m sorry about the calls. Please DM me your account or phone number tied to the account and I’ll check the opt‑out status and remove you from the telemarketing list.
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** Hi, I can definitely look into any calls you've been receiving. Please send a DM with your full name, address,
+
+---
+
+## Example 20: thread 1972252_1972251
+
+**Customer:** @comcastcares my modem went down with the power and it is still blinking. Is there an outage?
+
+**Classified intent:** Equipment Issues (confidence: high) | **Human label:** Service Outage
+
+**Retrieved grounding examples:** 3
+  - "@comcastcares what is going on with ?? Getting a black screen!!! Please don’t ask me to DM you. There’s 5K tweets!! Just fix it" → "We’re currently looking into this issue on an individual basis at this time. Please DM us for further assistance. -IB"
+  - "X1 box down again! Time down keeps growing. Totalling all the minutes down for the credit I expect. #comcastic 🙄" → "I would be happy to look further into your cable issue if you would provide your full address and account associated phone # in a DM. -JW"
+  - "@ComcastCares #mobile_Care The app says my service is connected, but the X1 Box will not boot. Please send tech with new box." → "I see that you've recently posted about your Comcast services, DM your account # so I can look into this &amp; speak privately. ~DB"
+
+**Drafted reply:** I’m checking for a local outage. Please DM us your account number and address so we can resolve this quickly. -IB
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** Hi, I can look into your service and the surrounding area for you. Can you DM the name and address on the account to us?-Sean
+
+---
+
+## Example 21: thread 2020365_2020364
+
+**Customer:** keeps dropping my internet for some reason. Going to keep trying to push through this stream but it's getting really difficult.
+
+**Classified intent:** Internet Performance (confidence: high) | **Human label:** Internet Performance
+
+**Retrieved grounding examples:** 3
+  - "Comcast's connection keeps dropping every 30 min and I keep having to reset the modem..." → "Hello, thanks for reaching out about your internet concerns and I'm happy to help! Can you please DM the full address? ~AT"
+  - "For some reason my internet is so shit. I dropped all my cable to have the best internet. You will be getting a call from me." → "Hello there. I would like to take a look at your internet connection. Can you please send a DM with your first an..."
+  - "Sorry I had to end the stream so shortly after starting, is eating ass in CO for some reason 😒" → "Hello, let me do some research on the account to see what is causing this problem. Please DM for assistance, thank you. -DP"
+
+**Drafted reply:** Hi! I’m sorry you’re having trouble streaming. Could you please DM me your full address so I can check your connection and get this sorted? Thank you!
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** Hi, I'm sorry to hear the connection is not performing properly, I'd like to look into this. Can you send me the full address over DM? -SDL
+
+---
+
+## Example 22: thread 2002375_2002377
+
+**Customer:** @comcastcares It's an area wide outage so I was curious if you have an ETR
+
+**Classified intent:** Service Outage (confidence: high) | **Human label:** Service Outage
+
+**Retrieved grounding examples:** 3
+  - "Seriously you always pick the best times to have an "outage" ☹️" → "Hi. I can definitely help with your services. Please DM me your account number or your service address and phone number. -PTL"
+  - "@comcastcares Is there an outage effecting all services in the Northern N.J. area?" → "your service concern and see what's going on in the area. -ATM"
+  - "@ComcastCares #mobile_Care why are there so many outages in my area lately?" → "Hello, Thank you for reaching out to us. We are able to look into your service trouble. Please send us a DM with"
+
+**Drafted reply:** Hi! I’m looking into the area‑wide outage for you. Please visit our outage map here: https://www.comcast.com/outages and enter your ZIP code. If you still see no update, DM us your account number and we’ll get an estimated time of restoration. Thanks for your patience!
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** I can look into that for you, but will need your account info to do so. Please send a DM with your account info so I can assist. - Noah
+
+---
+
+## Example 23: thread 1699179_1699178
+
+**Customer:** "The Future of Awesome" is currently not very awesome. #comcast #xfinity #outage
+
+**Classified intent:** Service Outage (confidence: high) | **Human label:** Service Outage
+
+**Retrieved grounding examples:** 3
+  - "#xfinity Outage in the Boston area" → "Hi, I would love to help. Please DM me the phone # associated with the account &amp; the service address. -Jules"
+  - "Currently is making “maintenance” on the back of its customers and this will last for 3 hours. And tomorrow it will start again." → "I understand this is a frustrating experience, I would like to look into this for you can you send a DM with your..."
+  - "Is Comcast down for all of greater Atlanta area? @comcastcares" → "Hi, I would be happy to help look in to the services. Can you please send me a DM with your acct# or phone# so I can assist you? -CLR"
+
+**Drafted reply:** Hi! I’m sorry you’re experiencing an outage. Please DM me your account or phone number and the service address so I can investigate right away. -Jules
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** Hello, we are aware of an issue and our teams are actively looking into it. Please follow @comcastcares for updates. - Matt
+
+---
+
+## Example 24: thread 1939197_1939196
+
+**Customer:** so tired of the RDK-03004 error code. Really looking into switching cable providers because I'm not getting the service I pay for.
+
+**Classified intent:** Technical Support (confidence: high) | **Human label:** Equipment Issues
+
+**Retrieved grounding examples:** 3
+  - "you guys have the fastest internet around. I work from home. I️ want to pay for your service. I️ just can’t get it to work. Please help me..." → "Hi, I can help resolve the issues with the internet trouble. Please DM me with your name and phone number or account number. ~PM"
+  - "@comcastcares Why am I no longer able to record programs on my DVR remotely?? This was the most useful feature of the app. Will this be added back to the app? Seems the more you pay the less you get from xfinity." → "That functionality has been removed from our apps. If you’re away from your DVR box and cannot schedule a recording and miss a show, check to see if it’s available on XFINITY On Demand! We apologize for the inconvenience. -XG"
+  - "@ComcastCares #mobile_Care having issues with my cable again. I’m getting XRE-03056 errors over and over. I’ve already reset it." → "Hey, I can look into this for you. Can you DM me your account info please? - Matt"
+
+**Drafted reply:** Hi, I’m sorry about the RDK‑03004 error. Let’s get this fixed. Please DM me your name and account number so I can investigate and get you back to full service. – @comcastcares
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** Hello. I'd like to help with your service issue. Please send a DM with your full name, address and phone number. -GM
+
+---
+
+## Example 25: thread 114157_114155
+
+**Customer:** @comcastcares Who can I contact to have your services extended to my area?
+
+**Classified intent:** Service Availability & Scheduling (confidence: high) | **Human label:** Service Availability & Scheduling
+
+**Retrieved grounding examples:** 3
+  - "@comcastcares yes. restore my 3 services" → "I would love to look into this for you. Please DM me the phone # associated with the account &amp; the service address. -Jules"
+  - "@comcastcares I'm moving this month. Would like to transfer service. Have my own equipment and know how to activate my stuff Can you help?" → "phone number, and the full billing name? - FHC"
+  - "@comcastcares I need to reschedule a tech visit. Can you HELP?" → "Yes, I surely can. I would need access to the account to complete this change. Can you DM your full name, the phone number, and address linked to the account? -Ra"
+
+**Drafted reply:** I’d be happy to check availability for you. Please DM me the phone number linked to your account and the service address. –Jules
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** Hello, I can aid with serviceability. Please start by sending me your name, address and phone number. -NC
+
+---
+
+## Example 26: thread 1813860_1813858
+
+**Customer:** oh I think I will play some video games.....nope no internet again, 3 days in a row my net has gone down #justcomcastthings
+
+**Classified intent:** Internet Performance (confidence: high) | **Human label:** Service Outage
+
+**Retrieved grounding examples:** 3
+  - "And my internet is down AGAIN! @comcastcares" → "I just wanted to follow up with you and see if you were still having issues with your internet. -JW"
+  - "Why does internet service keep kicking me out of my games I play online?" → "Hello I understand this is a frustrating experience, I would like to look into this for you can you send a DM with your account number and or phone number associated with your account? -AD"
+  - "My internet and cable has gone out 5 straight nights thanks a lot" → "so I can look into the cable and internet issues you've been experiencing. Thanks! -KW"
+
+**Drafted reply:** I’m sorry you’re still having trouble. Can you please DM me your account number or the phone number on the account so I can pull up your service status and investigate? Thanks!
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** I am sorry about this! Please send me a DM with your account number, address, and phone. I will be happy to help. Thanks! - RO
+
+---
+
+## Example 27: thread 135350_135349
+
+**Customer:** , when you give me “new and improved” equipment for my “better internet connection”, it really ought to actually work better than the old equipment. Not disconnect the internet about 2-3 times per day versus the old “maybe once every couple of months”.
+
+**Classified intent:** Equipment Issues (confidence: high) | **Human label:** Equipment Issues
+
+**Retrieved grounding examples:** 3
+  - "@comcastcares is it normal to have to reset my modem every couple days? Using my cellular data to tweet this... does that make @ATT better?" → "It's not typical. Could you DM me so I can take a look at the account?-JG"
+  - "@comcastcares got a new router today bcz of slow internet probs, so far no change on my laptop. The tech guy…" → "Hello Scott, I can further investigate these slow speeds. Can you please DM me the full name and address on the account? -ADW"
+  - "And you’ll send someone out between the hours of 2-4pm, right?" → "I can look into this, send me a DM please. -MSA"
+
+**Drafted reply:** I’m sorry you’re still having trouble. Please DM me your account name and address so I can look into the equipment issue and get it resolved. -JG
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** Hello, We are able to look into your internet trouble. Please send us a DM with your name and phone number for assistance. -AC
+
+---
+
+## Example 28: thread 1694811_1694810
+
+**Customer:** informed me that they'd rather lose me as a customer than provide me with decent customer service. Pass it on.
+
+**Classified intent:** Escalation & Security (confidence: high) | **Human label:** Technical Support
+
+**Retrieved grounding examples:** 3
+  - "@comcastcares Also, I just noticed you signed me up for paperless billing w/o informing me. What else are u doing to me and not telling me about?" → "I can have someone investigate EcoBill change. This can be changed back using My Account: -Dan"
+  - "@comcastcares ... I’m experiencing the worst customer service ever from Alfie (1585056). Please call me @ (901) 219-0177 as soon as you can." → "We are able to work with you here on social media. Please send more details, I'd be pleased to help. -NC"
+  - "@comcastcares I hate your customer service with every ounce of my being.id rather pay triple than deal with their ineptitude. I lost 2 hours of my life. No resolve" → "Hi, Emily! I understand that your time is precious. Please DM your full name, address, and the primary phone number listed on the account. I will do everything I can to rectify any XFINITY service concerns in a timely manner. -GO"
+
+**Drafted reply:** I’m sorry you’re feeling this way. Please DM me your full name, address, and the phone number on the account so I can forward your concerns to the right team and work on a solution. – @comcastcares
+
+**Decision:** AUTO-HANDLE — Auto-handle: 'Escalation & Security' is a sensitive intent, but high classifier confidence and 3 well-resolved historical examples were judged sufficient to proceed.
+
+**Actual historical reply (for comparison):** Hello Kelley, I would love to assist you with any service issues or concerns. Please DM me the details and I can help. -ADW
+
+---
+
+## Example 29: thread 1380678_1380677
+
+**Customer:** Hey , just ordered uverse because you planks can’t add HD to the account. Bill has been paid for 10 days and still has a “hold”.
+
+**Classified intent:** Service Availability & Scheduling (confidence: high) | **Human label:** Channel Issues
+
+**Retrieved grounding examples:** 3
+  - "@ComcastCares #mobile_Care my home security tech has been here working his butt off for over 2 hours, but the cable tech is a now show." → "Hi, I am sorry these technicians are not working at the same speed. If you would like me to look into this please send a DM. -CF"
+  - "y’all so trash been waiting 3 days for someone to come and hook up my shit" → "Hello. Are you saying an installation was delayed? Please DM us with your account # or address and details for assistance. Thanks. -FL"
+  - "@comcastcares we have been without internet for 36hrs-- now am available for a tech to come by this evening. Can you pls help schedule?" → "with your full name and account number. -ATM"
+
+**Drafted reply:** Hi! I’m sorry about the delay. Please DM us your account number or address so we can check the status and get a tech scheduled ASAP. Thanks! -CF
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** Hello, We are able to look into the issue with adding HD, Please send us a DM with your phone number for assistance. -AC
+
+---
+
+## Example 30: thread 377862_377861
+
+**Customer:** @ComcastCares #mobile_Care. On demand service is extremely slow and constantly stalls tonight.
+
+**Classified intent:** Streaming Content Issues (confidence: high) | **Human label:** Streaming Content Issues
+
+**Retrieved grounding examples:** 3
+  - "@ComcastCares #mobile_Care My nba tv keeps freezing" → "Hi! I understand your frustrations regarding your service. I would be happy to look into this for you. Would you please DM your name,"
+  - "@ComcastCares #mobile_Care. No signal on black screen. Restarted and still same. Unplugged all" → "I see that you've recently posted about your Comcast services, DM your account # so I can look into this &amp; speak privately. ~DB"
+  - ".@comcastcares {My latest!} Check out my result! How slow is your internet? #speedtest" → "Hi, I would love to help. Please DM me the phone # associated with the account &amp; the service address. -Jules"
+
+**Drafted reply:** Hi! I’m sorry you’re having trouble with On‑Demand. Please DM me your account number and the address so I can investigate and get this fixed for you.
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** I would be happy to help you with your On Demand issue. Please send me a DM and your address.~RL
+
+---
+
+## Example 31: thread 2958152_2958151
+
+**Customer:** Hey how much better are you than @comcastcares? I’m ready to switch... today was the last straw
+
+**Classified intent:** Escalation & Security (confidence: high) | **Human label:** Technical Support
+
+**Retrieved grounding examples:** 3
+  - "@comcastcares I am about to switch to Verizon from comcast bill to high for nothing." → "Hello, I'm sorry to see that you feel this way and I'd be happy to help with your bill. Can you please DM the full address? ~AT"
+  - "If I keep being ignored however I will blow your twitter feed up. Everyone already knows you don't provide what you advertise. This is the last straw. I AM NOT HAPPY" → "Hello. I would like to look into these interruption and data issues for you. Please, DM me your full address, phone number and name ont he account. Thanks.-JC"
+  - "Hey I called because my internet is down, stop trying to sell me phone service - I have shit to do today, on the clock. kthxbye" → "Hi Wynne, thanks for reaching out to us with your concern about the internet. I'd like to help restore the connec..."
+
+**Drafted reply:** Hi there, I’m sorry you’re feeling frustrated. I’d like to help you stay with us. Please DM me your full address, account number, and the name on the account so I can look into this right away. Thanks!
+
+**Decision:** AUTO-HANDLE — Auto-handle: 'Escalation & Security' is a sensitive intent, but high classifier confidence and 3 well-resolved historical examples were judged sufficient to proceed.
+
+**Actual historical reply (for comparison):** I'll be happy to assist with any account questions or service issues. Could you please send a DM with your account information? -CRP
+
+---
+
+## Example 32: thread 2864317_2864315
+
+**Customer:** @comcastcares Which IR extender works for the dvr?
+
+**Classified intent:** Technical Support (confidence: high) | **Human label:** Technical Support
+
+**Retrieved grounding examples:** 3
+  - "@comcastcares Why am I no longer able to record programs on my DVR remotely?? This was the most useful feature of the app. Will this be added back to the app? Seems the more you pay the less you get from xfinity." → "That functionality has been removed from our apps. If you’re away from your DVR box and cannot schedule a recording and miss a show, check to see if it’s available on XFINITY On Demand! We apologize for the inconvenience. -XG"
+  - "@comcastcares Are you seriously telling me you can't use a computer whatsoever to either schedule or edit DVR recordings anymore, you HAVE to use the physical DVR box on our tvs? Because that's pretty bogus and backwards. Please clarify." → "The majority of content should be available on On Demand. If you are not able to record a show because you are away, it is likely that show will be available to watch though the Stream app. -ML"
+  - ". . FUCK YOU! how does the DVR auto extend record every #WorldSeries game but game 7!!! FUCK YOU!!!!" → "We'd like to investigate what happened here. Could you send us a DM with your account info so we can get started? -ch"
+
+**Drafted reply:** Sure! The Xfinity IR Extender (model #XG-IR-EXT) is the one that works with your DVR. Grab it from the Xfinity store or order online, and it’ll extend the IR signal to your DVR’s remote. Let us know if you need help setting it up! -XG
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** If you could find one that connects by using a USB port, you should be able to connect one that way. -TJS
+
+---
+
+## Example 33: thread 2962208_2962207
+
+**Customer:** @ComcastCares #mobile_Care Can I upgrade to unlimited plan for one month to avoid my data overages for this month and switch back to my current plan next month. Not sure if that would be an option. Thank you. I’m currently $80 over my current data allotment of 1TB
+
+**Classified intent:** Account Management (confidence: high) | **Human label:** Billing Issues
+
+**Retrieved grounding examples:** 3
+  - "@ComcastCares #mobile_Care if I switch to #comcastmobile with you pay off my phone from my current phone carrier?" → "Hello, we do not offer to pay off phones from other carriers. I'd be happy to answer any other questions you have. -Tom"
+  - "@comcastcares I'm done now...till next month, obvs." → "Please reach out if you want our assistance via social media. Thanks. -NC"
+  - "@comcastcares And there nothing to discuss I canceled my service and I’m back with now" → "Sorry to here you left. If you have any questions or concerns please feel free to reach out to us as we are available 24/7. -ATM"
+
+**Drafted reply:** Hi! We don’t offer a one‑month unlimited plan, but you can add a 500 GB or 1 TB data add‑on for this month. Log in to your account or call 1‑800‑CONFORT for a quick upgrade. Let us know if you need help! –Comcast Cares
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** Thanks for asking! Here's an explanation on the unlimited data option: -Joe
+
+---
+
+## Example 34: thread 2745191_2745190
+
+**Customer:** @comcastcares slowest WiFi internet EVER!!!!!!!!!
+
+**Classified intent:** Internet Performance (confidence: high) | **Human label:** Internet Performance
+
+**Retrieved grounding examples:** 3
+  - "wifi is atrocious . Worst I've ever had ." → "Hello. That's not the customer service we want you to have. Please send a DM with your full name, address &amp; ph#. ~GM"
+  - "@comcastcares" → "Hi, we would like to look into your internet service for you. Please send us a DM with your acct number and full address. Thank you, -EP"
+  - "@comcastcares why does my wifi always suck after 1am" → "Hey there. I'd like to help with your internet concerns. Send me a DM with your phone number and address to get started! - SL"
+
+**Drafted reply:** Hi! We’d love to help speed up your Wi‑Fi. Please DM us your account number, full address, and phone number so we can investigate right away. Thank you!
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** Hello! I'd like to help with your internet concerns. Please send me a DM with your address and phone number to get started. Thank you! - SL
+
+---
+
+## Example 35: thread 574350_574348
+
+**Customer:** @ComcastCares: #mobile_CareXI My modem is not working
+
+**Classified intent:** Equipment Issues (confidence: high) | **Human label:** Service Outage
+
+**Retrieved grounding examples:** 3
+  - "@ComcastCares Having modem issues, I keep having to reset my modem and it works for a bit before I have to reset it again… help please! #mobile_CareXI" → "I can look into your connection. Can you DM me your address and phone number please? -AG"
+  - "@ComcastCares all lights on modem,2.5 ghz and 5 ghz are flashing it lets me connect to WiFi but says I’m not connected online #mobile_CareXI" → "Hi, I'd like to help get your WiFi working again. Can you DM me your address and phone number to locate your account? -SDL"
+  - "@comcastcares my internet just shit down and isn't working! Wtf" → "Hi, I would love to help. Please DM me the phone # associated with the account &amp; the service address. -Jules"
+
+**Drafted reply:** Hi, I’d love to help. Please DM me the phone number on the account and the service address. -AG
+
+**Decision:** AUTO-HANDLE — Auto-handle: high-confidence classification in a low-risk intent, with 3 well-resolved historical examples for grounding.
+
+**Actual historical reply (for comparison):** Hi, Tami! I can help with the internet service issues. Let’s get that fixed as quickly as possible. Would you mind verifying your full name, the name on the account if different, the full address, and the primary phone number? -GO
+
+---
