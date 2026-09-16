@@ -1,1 +1,4 @@
 data/*.csv
+.env
+.cache/
+__pycache__/
