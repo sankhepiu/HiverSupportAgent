@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Equipment Issues",
+    "definition": "Customer requests related to returned, rented, reset, malfunctioning, or incorrectly installed equipment such as set\u2011top boxes, routers, gateways, or modems, including removal or return."
+  },
+  {
+    "name": "Service Outage",
+    "definition": "Customer reports loss or interruption of TV, internet, or cable service, including widespread or localized outages and requests for status updates."
+  },
+  {
+    "name": "Streaming Content Issues",
+    "definition": "Customer cannot access on\u2011demand, streaming apps, or specific content, including missing episodes, licensing restrictions, or live streaming app access."
+  },
+  {
+    "name": "Channel Issues",
+    "definition": "Customer cannot view a channel, has problems with channel lineup, HD quality, or package changes, including cable TV or streaming issues."
+  },
+  {
+    "name": "Internet Performance",
+    "definition": "Customer reports slow, inconsistent, or unreliable internet speeds, connectivity drops, data throttling, data caps, or locked\u2011out Wi\u2011Fi."
+  },
+  {
+    "name": "Billing Issues",
+    "definition": "Customer disputes charges, requests refunds or credits, or has billing errors, including late fees, payment status concerns, rate disputes, price increases, or hidden fees."
+  },
+  {
+    "name": "Account Management",
+    "definition": "Customer requests account status, billing, contact info, login assistance, changes to services, or login/account access issues."
+  },
+  {
+    "name": "Technical Support",
+    "definition": "Customer needs help troubleshooting equipment, error codes, signal quality, Wi\u2011Fi, speed, device configuration, VPN/security queries, or general technical issues."
+  },
+  {
+    "name": "Service Availability & Scheduling",
+    "definition": "Customer asks if service is available in a specific location, requests new service activation, move, or activation, and wants to schedule, reschedule, or discuss a technician visit for repair or installation."
+  },
+  {
+    "name": "Escalation & Security",
+    "definition": "Customer requests a supervisor or higher\u2011level assistance, includes harassment/rude language, retention offers, lack of response, or alleges unauthorized access, data breaches, or fraudulent activity and requests protection or investigation."
+  }
+]

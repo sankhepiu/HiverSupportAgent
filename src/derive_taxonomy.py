@@ -33,6 +33,8 @@ import requests
 INPUT_PATH = Path("data/comcastcares_threads.jsonl")
 CACHE_PATH = Path(".cache/groq_cache.json")
 REPORT_PATH = Path("reports/intent_taxonomy.md")
+TAXONOMY_JSON_PATH = Path("data/intent_taxonomy.json")
+ASSIGNMENTS_PATH = Path("data/intent_assignments.jsonl")
 
 SAMPLE_SIZE = 1500
 RANDOM_SEED = 42
@@ -113,14 +115,15 @@ def extract_json(text):
 
 
 def load_sample():
-    messages = []
+    items = []
     with INPUT_PATH.open(encoding="utf-8") as f:
         for line in f:
-            msg = json.loads(line).get("customer_message")
+            row = json.loads(line)
+            msg = row.get("customer_message")
             if msg:
-                messages.append(msg)
+                items.append({"thread_id": row["thread_id"], "message": msg})
     random.seed(RANDOM_SEED)
-    return random.sample(messages, min(SAMPLE_SIZE, len(messages)))
+    return random.sample(items, min(SAMPLE_SIZE, len(items)))
 
 
 def batched(items, size):
@@ -148,7 +151,7 @@ def run_open_coding(api_key, cache, sample):
     batches = list(batched(sample, OPEN_CODING_BATCH_SIZE))
     for i, batch in enumerate(batches, start=1):
         print(f"  Open coding batch {i}/{len(batches)} ({len(batch)} messages) ...")
-        numbered = "\n".join(f"{j}. {m}" for j, m in enumerate(batch, start=1))
+        numbered = "\n".join(f"{j}. {item['message']}" for j, item in enumerate(batch, start=1))
         prompt = OPEN_CODING_PROMPT.format(n=len(batch), numbered=numbered)
         content = call_groq(api_key, cache, [{"role": "user", "content": prompt}])
         try:
@@ -157,7 +160,7 @@ def run_open_coding(api_key, cache, sample):
             print(f"    WARNING: skipping malformed batch response ({e})")
             continue
         for p in proposals:
-            examples = [batch[idx - 1] for idx in p.get("example_indices", []) if 1 <= idx <= len(batch)]
+            examples = [batch[idx - 1]["message"] for idx in p.get("example_indices", []) if 1 <= idx <= len(batch)]
             candidates.append({
                 "label": p.get("label", "").strip(),
                 "definition": p.get("definition", "").strip(),
@@ -249,7 +252,7 @@ def run_classification(api_key, cache, sample, taxonomy):
     batches = list(batched(sample, CLASSIFY_BATCH_SIZE))
     for i, batch in enumerate(batches, start=1):
         print(f"  Classifying batch {i}/{len(batches)} ({len(batch)} messages) ...")
-        numbered = "\n".join(f"{j}. {m}" for j, m in enumerate(batch, start=1))
+        numbered = "\n".join(f"{j}. {item['message']}" for j, item in enumerate(batch, start=1))
         prompt = CLASSIFY_PROMPT.format(taxonomy_list=taxonomy_list, n=len(batch), numbered=numbered)
         content = call_groq(api_key, cache, [{"role": "user", "content": prompt}], temperature=0.0)
         try:
@@ -266,8 +269,8 @@ def run_classification(api_key, cache, sample, taxonomy):
         elif len(labels) > len(batch):
             labels = labels[:len(batch)]
 
-        for msg, label in zip(batch, labels):
-            assignments.append((msg, label))
+        for item, label in zip(batch, labels):
+            assignments.append((item["thread_id"], item["message"], label))
     return assignments, failed_count
 
 
@@ -280,7 +283,7 @@ def build_report(taxonomy, assignments, sample_size, failed_count):
     counts = {t["name"]: 0 for t in taxonomy}
     counts["Other"] = 0
 
-    for msg, label in assignments:
+    for _thread_id, msg, label in assignments:
         if label == FAILED_SENTINEL:
             continue
         if label not in valid_names:
@@ -321,6 +324,19 @@ def build_report(taxonomy, assignments, sample_size, failed_count):
         lines.append("")
 
     return "\n".join(lines)
+
+
+def save_assignments(assignments):
+    ASSIGNMENTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with ASSIGNMENTS_PATH.open("w", encoding="utf-8") as f:
+        for thread_id, msg, label in assignments:
+            failed = label == FAILED_SENTINEL
+            f.write(json.dumps({
+                "thread_id": thread_id,
+                "customer_message": msg,
+                "intent": None if failed else label,
+                "failed": failed,
+            }) + "\n")
 
 
 def main():
@@ -364,8 +380,15 @@ def main():
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     REPORT_PATH.write_text(report, encoding="utf-8")
 
+    TAXONOMY_JSON_PATH.parent.mkdir(parents=True, exist_ok=True)
+    TAXONOMY_JSON_PATH.write_text(json.dumps(taxonomy, indent=2), encoding="utf-8")
+
+    save_assignments(assignments)
+
     print(report)
     print(f"\nSaved taxonomy to {REPORT_PATH}")
+    print(f"Saved machine-readable taxonomy to {TAXONOMY_JSON_PATH}")
+    print(f"Saved per-thread intent assignments to {ASSIGNMENTS_PATH}")
 
 
 if __name__ == "__main__":
